@@ -1,5 +1,9 @@
 # HACKTHEBOX: Seal
 
+Seal is a Linux box running two web apps. The second webapp is a gitbucket app with plaintext Tomcat creds. Logging into Tomcat leads to the WAR RCE
+After gaining access to the system, a cronjob performing routine backups by creating a symlink from User SSH keys to the backup files.
+After getting the SSH keys, the user can run ansible-playbook as root without a password.
+
 ## Recon and Enumeration
 Shown below is a full port scan of the box. There is a web app on port 443 and port 8080.
 ```
